@@ -4,96 +4,233 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Terraform AWS Platform IaC Demo</title>
-  <meta name="description" content="Infraestructura como código con Terraform en AWS (VPC, Subnets, Security Groups, EC2) con evidencias y acceso SSH/SSM." />
+  <meta name="description" content="Demo de Infraestructura como Código con Terraform en AWS (VPC, Subnet, SG, EC2) con evidencias y accesos SSH/SSM." />
+
   <style>
-    :root { --bg:#0b1220; --card:#111b2e; --text:#e6edf3; --muted:#9fb0c3; --accent:#7dd3fc; }
-    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background:var(--bg); color:var(--text); }
-    .wrap { max-width: 980px; margin: 0 auto; padding: 28px 18px 60px; }
-    header { padding: 22px 18px; background: linear-gradient(135deg, rgba(125,211,252,.18), rgba(125,211,252,0)); border:1px solid rgba(255,255,255,.08); border-radius: 16px; }
-    h1 { margin: 0 0 8px; font-size: 28px; }
-    p { margin: 8px 0; color: var(--muted); line-height: 1.5; }
-    .grid { display:grid; gap:16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-top: 18px; }
-    .card { background: var(--card); border: 1px solid rgba(255,255,255,.08); border-radius: 16px; padding: 16px; }
-    .card h2 { margin: 0 0 10px; font-size: 16px; color: var(--text); }
-    ul { margin: 0; padding-left: 18px; color: var(--muted); }
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    .img { width:100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.02); }
-    .tag { display:inline-block; font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,.12); color: var(--muted); margin-right: 8px; margin-top: 10px; }
-    footer { margin-top: 22px; color: var(--muted); font-size: 12px; }
-    code { background: rgba(255,255,255,.06); padding: 2px 6px; border-radius: 8px; }
-    .btn {
-      display:inline-block; margin-top:10px; padding: 10px 12px; border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.04);
-      color: var(--text); text-decoration:none;
+    :root{
+      --bg:#0b0c10;
+      --panel:#0f1117;
+      --card:#10131b;
+      --border:rgba(255,255,255,.10);
+      --text:#e6edf3;
+      --muted:#9aa4b2;
+      --shadow:0 16px 40px rgba(0,0,0,.45);
+      --radius:18px;
     }
-    .btn:hover { border-color: rgba(125,211,252,.45); }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color:var(--text);
+      background:
+        radial-gradient(900px 450px at 15% 0%, rgba(255,255,255,.06), transparent 55%),
+        radial-gradient(900px 450px at 85% 0%, rgba(255,255,255,.04), transparent 55%),
+        var(--bg);
+    }
+    .wrap{ max-width: 1120px; margin:0 auto; padding: 36px 18px 70px; }
+
+    /* Top pill */
+    .pill{
+      display:inline-flex; gap:8px; align-items:center;
+      font-size:12px; color:rgba(230,237,243,.85);
+      padding:6px 10px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.03);
+      margin-bottom: 14px;
+    }
+
+    header{
+      padding: 28px 24px;
+      border-radius: calc(var(--radius) + 8px);
+      border:1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      box-shadow: var(--shadow);
+    }
+    h1{
+      margin:0 0 10px;
+      font-size: 44px;
+      letter-spacing: -0.8px;
+    }
+    .sub{
+      margin:0;
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 900px;
+      font-size: 15px;
+    }
+    .actions{ margin-top: 18px; display:flex; gap:12px; flex-wrap:wrap; }
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center;
+      padding: 10px 14px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      text-decoration:none;
+      font-size: 14px;
+    }
+    .btn:hover{ border-color: rgba(255,255,255,.26); background: rgba(255,255,255,.06); }
+    .btn.primary{
+      background: rgba(255,255,255,.10);
+      border-color: rgba(255,255,255,.22);
+    }
+    .divider{
+      margin: 22px 0 0;
+      height: 1px;
+      background: rgba(255,255,255,.10);
+    }
+
+    .section{
+      margin-top: 18px;
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.02);
+      padding: 18px;
+      box-shadow: 0 10px 26px rgba(0,0,0,.25);
+    }
+    .section h2{ margin:0 0 10px; font-size: 18px; }
+    ul{ margin:0; padding-left:18px; color: var(--muted); line-height: 1.8; }
+    code{
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.08);
+      padding: 2px 6px;
+      border-radius: 10px;
+      color: rgba(230,237,243,.95);
+      font-size: 13px;
+    }
+
+    /* Media (images) */
+    .grid{
+      margin-top: 14px;
+      display:grid;
+      gap:14px;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    }
+    .card{
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.02);
+      padding: 14px;
+      box-shadow: 0 10px 26px rgba(0,0,0,.25);
+    }
+    .card h3{ margin:0 0 10px; font-size: 15px; color: rgba(230,237,243,.95); }
+    .img{
+      width:100%;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.02);
+      box-shadow: 0 12px 24px rgba(0,0,0,.35);
+    }
+
+    /* Diagram background (gris) */
+    .diagram-wrap{
+      padding: 12px;
+      border-radius: 16px;
+      background: #e6e8ec;
+      border: 1px solid rgba(0,0,0,.08);
+    }
+    .diagram-wrap .img{
+      border:1px solid rgba(0,0,0,.10);
+      box-shadow:none;
+      background: transparent;
+    }
+
+    footer{
+      margin-top: 26px;
+      text-align:center;
+      color: rgba(154,164,178,.85);
+      font-size: 12px;
+    }
   </style>
 </head>
+
 <body>
   <div class="wrap">
+    <div class="pill">Portfolio · Infrastructure as Code</div>
+
     <header>
       <h1>Terraform AWS Platform IaC Demo</h1>
-      <p>
-        Infraestructura como código con <b>Terraform</b> en AWS: <b>VPC</b>, <b>Subnet pública</b>, <b>Security Group</b> y <b>EC2</b>
-        con NGINX y acceso seguro por <b>SSH</b> (restringido) y <b>AWS SSM</b>.
+      <p class="sub">
+        Technical showcase of an AWS infrastructure provisioned with <b>Terraform</b>:
+        <b>VPC</b>, <b>Public Subnet</b>, <b>Security Group</b> and <b>EC2</b> with NGINX,
+        plus secure access via <b>SSH</b> (restricted) and <b>AWS SSM</b>.
       </p>
-      <span class="tag">Terraform</span>
-      <span class="tag">AWS</span>
-      <span class="tag">IaC</span>
-      <span class="tag">EC2</span>
-      <span class="tag">SSM</span>
+
+      <div class="actions">
+        <a class="btn" 
+           href="https://github.com/Ryffje/terraform-aws-platform-iac-demo" 
+           target="_blank" 
+           rel="noreferrer">
+          This page repository
+        </a>
+      
+        <a class="btn primary" 
+           href="https://github.com/Ryffje/terraform-aws-platform-iac" 
+           target="_blank" 
+           rel="noreferrer">
+          Main project repository
+        </a>
+      </div>
+
+      <div class="divider"></div>
     </header>
+
+    <section class="section">
+      <h2>What this project demonstrates</h2>
+      <ul>
+        <li>Infrastructure provisioning with Terraform (VPC, Subnet, IGW, Route Table, SG, EC2)</li>
+        <li>Secure access patterns: SSH restricted + AWS Systems Manager (SSM)</li>
+        <li>Web server running on EC2 (NGINX / Port 80)</li>
+        <li>Visual evidence of the AWS resources and CLI access</li>
+      </ul>
+    </section>
 
     <div class="grid">
       <section class="card">
-        <h2>Arquitectura (AWS Icons)</h2>
-        <p>Diagrama del stack aprovisionado con Terraform:</p>
-        <img class="img" src="assets/terraform-aws-platform-architecture.png" alt="Terraform AWS Platform Architecture Diagram" />
+        <h3>Architecture diagram (AWS Icons)</h3>
+        <div class="diagram-wrap">
+          <img class="img" src="assets/terraform-aws-platform-architecture.png" alt="Terraform AWS Platform Architecture Diagram" />
+        </div>
       </section>
 
       <section class="card">
-        <h2>Qué incluye</h2>
-        <ul>
-          <li>VPC (10.10.0.0/16)</li>
-          <li>Public Subnet (10.10.1.0/24)</li>
-          <li>Internet Gateway + Route Table (0.0.0.0/0)</li>
-          <li>Security Group: HTTP 80, SSH 22 (restringido)</li>
-          <li>EC2 (Amazon Linux) + NGINX + SSM Agent</li>
-        </ul>
-      </section>
-
-      <section class="card">
-        <h2>Cómo correr</h2>
+        <h3>Run it</h3>
         <ul>
           <li><code>terraform init</code></li>
           <li><code>terraform plan</code></li>
           <li><code>terraform apply</code></li>
           <li><code>terraform destroy</code></li>
         </ul>
-        <p style="margin-top:10px">
-          Tip: guardá variables en <code>terraform.tfvars</code> y documentalas en README.
+        <p class="sub" style="margin-top:10px;">
+          Tip: keep variables in <code>terraform.tfvars</code> and document them in README.
         </p>
-      </section>
-
-      <section class="card">
-        <h2>Evidencias (Screenshots)</h2>
-
-        <p><b>Instancia EC2 creada (AWS Console)</b></p>
-        <img class="img" src="assets/screenshots/awsinstance.png" alt="AWS EC2 Instance">
-
-        <p style="margin-top:16px;"><b>Conexión SSH desde PowerShell</b></p>
-        <img class="img" src="assets/screenshots/sshEC2CLI.png" alt="SSH CLI">
-
-        <p style="margin-top:16px;"><b>Conexión vía AWS SSM</b></p>
-        <img class="img" src="assets/screenshots/ssmEC2CLI.png" alt="SSM CLI">
-
-        <a class="btn" href="assets/screenshots/" target="_blank" rel="noreferrer">Abrir carpeta completa</a>
       </section>
     </div>
 
+    <section class="section" style="margin-top:14px;">
+      <h2>Evidence (Screenshots)</h2>
+      <div class="grid" style="margin-top:12px;">
+        <div class="card">
+          <h3>EC2 created (AWS Console)</h3>
+          <img class="img" src="assets/screenshots/awsinstance.png" alt="AWS EC2 Instance">
+        </div>
+        <div class="card">
+          <h3>SSH access (PowerShell)</h3>
+          <img class="img" src="assets/screenshots/sshEC2CLI.png" alt="SSH CLI">
+        </div>
+        <div class="card">
+          <h3>SSM Session Manager access</h3>
+          <img class="img" src="assets/screenshots/ssmEC2CLI.png" alt="SSM CLI">
+        </div>
+      </div>
+
+      <a class="btn" style="margin-top:14px;" href="assets/screenshots/" target="_blank" rel="noreferrer">
+        Open screenshots folder
+      </a>
+    </section>
+
     <footer>
-      <p>Hecho por ryffje — Terraform AWS Platform IaC Demo.</p>
+      Hecho por ryffje — Terraform AWS Platform IaC Demo.
     </footer>
   </div>
 </body>
